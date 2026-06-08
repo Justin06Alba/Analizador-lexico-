@@ -1,0 +1,43 @@
+# Build artifacts
+build/
+dist/
+*.spec
+*.o
+*.exe
+lex.yy.c
+lexer
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.hypothesis/
+
+# Temporary files
+*.tmp
+temp_*.ml
+*.log
+
+# OS specific
+.DS_Store
+Thumbs.db

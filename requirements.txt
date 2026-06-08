@@ -1,0 +1,11 @@
+# Analizador Léxico MiniLex - Dependencias Python
+# Python 3.10+ requerido
+
+# Interfaz gráfica moderna con soporte de temas
+customtkinter>=5.2.0
+
+# Property-based testing framework
+hypothesis>=6.82.0
+
+# Testing framework
+pytest>=7.4.0
