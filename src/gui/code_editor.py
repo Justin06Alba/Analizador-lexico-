@@ -2,20 +2,17 @@ import customtkinter as ctk
 
 
 class CodeEditor(ctk.CTkFrame):
-    """Editor de código con números de línea y resaltado de errores léxicos."""
 
     def __init__(self, parent):
         super().__init__(parent)
         self.configure(fg_color="transparent")
 
-        # Columna de números de línea (solo lectura)
         self.line_numbers = ctk.CTkTextbox(
             self, width=40, font=("Consolas", 11),
             wrap="none", state="disabled", activate_scrollbars=False
         )
         self.line_numbers.pack(side="left", fill="y", padx=(0, 2))
 
-        # Área de edición de código
         self.code_text = ctk.CTkTextbox(self, font=("Consolas", 11), wrap="none")
         self.code_text.pack(side="left", fill="both", expand=True)
 
@@ -67,6 +64,26 @@ class CodeEditor(ctk.CTkFrame):
             start_pos = f"{token.line}.{token.column}"
             end_pos = f"{token.line}.{token.column + len(token.lexeme)}"
             text_widget.tag_add("error", start_pos, end_pos)
+
+    def highlight_errors_sint(self, errores_sint: list) -> None:
+        try:
+            if not hasattr(self.code_text, '_textbox'):
+                return
+            text_widget = self.code_text._textbox
+        except Exception:
+            return
+
+        text_widget.tag_remove("error_sint", "1.0", "end")
+        text_widget.tag_config("error_sint", foreground="#FF8C00", font=("Consolas", 11, "bold"))
+
+        for err in errores_sint:
+            try:
+                longitud = max(len(err.token_encontrado), 1)
+                start_pos = f"{err.line}.{err.column}"
+                end_pos = f"{err.line}.{err.column + longitud}"
+                text_widget.tag_add("error_sint", start_pos, end_pos)
+            except Exception:
+                pass
 
     def _on_text_change(self, event=None):
         self.update_line_numbers()

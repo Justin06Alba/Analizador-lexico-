@@ -2,8 +2,6 @@ import customtkinter as ctk
 
 
 class ConsoleOutput(ctk.CTkFrame):
-    """Consola de estado estilo terminal con mensajes coloreados por nivel."""
-
     LEVEL_COLORS = {
         "info":    "#D4D4D4",
         "success": "#4EC9B0",

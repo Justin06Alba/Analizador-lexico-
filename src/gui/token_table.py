@@ -4,7 +4,7 @@ from src.models import Token
 
 TOKEN_COLORS = {
     "PALABRA_RESERVADA": "#569CD6",
-    "IDENTIFICADOR":     "#9CDCFE",
+    "IDENTIFICADOR":     "#004A72",
     "ENTERO":            "#B5CEA8",
     "DECIMAL":           "#B5CEA8",
     "CADENA":            "#CE9178",

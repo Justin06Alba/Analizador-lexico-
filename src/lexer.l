@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <string.h>
 
-/* yylineno is provided automatically by flex (declared in lex.yy.c) */
 int yycolumn = 1;
 
 void update_column() {

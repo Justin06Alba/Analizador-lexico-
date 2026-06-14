@@ -121,10 +121,18 @@ class LexerCompiler:
             return (False, f"Error inesperado al ejecutar flex: {e}")
 
         # Compilar lex.yy.c con gcc
+        # MSYS2/MinGW gcc necesita su propia carpeta en PATH para encontrar DLLs internas
+        env_compilacion = os.environ.copy()
+        directorio_gcc = os.path.dirname(gcc_exe)
+        rutas_actuales = env_compilacion.get("PATH", "")
+        if directorio_gcc not in rutas_actuales:
+            env_compilacion["PATH"] = directorio_gcc + os.pathsep + rutas_actuales
+
         try:
             gcc_result = subprocess.run(
                 [gcc_exe, self.c_output_file, "-o", self.executable_path],
                 capture_output=True, text=True, check=False,
+                env=env_compilacion,
             )
             if gcc_result.returncode != 0:
                 error_msg = gcc_result.stderr or "Error desconocido de gcc"
