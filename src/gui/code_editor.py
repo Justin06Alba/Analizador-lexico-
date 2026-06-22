@@ -34,7 +34,8 @@ class CodeEditor(ctk.CTkFrame):
             pass
 
     def get_code(self) -> str:
-        return self.code_text.get("1.0", "end-1c")
+        resultado = self.code_text.get("1.0", "end-1c")
+        return resultado if resultado is not None else ""
 
     def set_code(self, code: str):
         self.code_text.delete("1.0", "end")
@@ -82,6 +83,26 @@ class CodeEditor(ctk.CTkFrame):
                 start_pos = f"{err.line}.{err.column}"
                 end_pos = f"{err.line}.{err.column + longitud}"
                 text_widget.tag_add("error_sint", start_pos, end_pos)
+            except Exception:
+                pass
+
+    def highlight_errors_sem(self, errores_sem: list) -> None:
+        try:
+            if not hasattr(self.code_text, '_textbox'):
+                return
+            text_widget = self.code_text._textbox
+        except Exception:
+            return
+
+        text_widget.tag_remove("error_sem", "1.0", "end")
+        text_widget.tag_config("error_sem", foreground="#C586C0", font=("Consolas", 11, "bold"))
+
+        for err in errores_sem:
+            try:
+                longitud = max(len(getattr(err, "token_encontrado", "") or ""), 1)
+                start_pos = f"{err.line}.{err.column}"
+                end_pos = f"{err.line}.{err.column + longitud}"
+                text_widget.tag_add("error_sem", start_pos, end_pos)
             except Exception:
                 pass
 

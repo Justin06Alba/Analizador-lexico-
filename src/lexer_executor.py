@@ -10,7 +10,7 @@ class LexerExecutor:
         self.lexer_executable = lexer_executable
 
     def execute(self, code: str) -> tuple[bool, str, str]:
-        if not code or not code.strip():
+        if not code or not str(code).strip():
             return (False, "", "Error: El código de entrada está vacío")
 
         if not os.path.exists(self.lexer_executable):

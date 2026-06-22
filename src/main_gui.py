@@ -11,6 +11,7 @@ from src.lexer_executor import LexerExecutor
 from src.token_parser import TokenParser
 from src.ast_nodes import ASTNode, ProgramaNode
 from src.parser_sintatico import SintacticoParser, ParseResult, ErrorSintactico
+from src.analizador_semantico import AnalizadorSemantico, SemanticResult, ErrorSemantico
 
 
 def _get_base_dir() -> str:
@@ -99,6 +100,18 @@ class MiniLexGUI(ctk.CTk):
         tab_errores.grid_rowconfigure(0, weight=1)
         self._crear_errores_sint_treeview(tab_errores)
 
+        tab_simbolos = ctk.CTkFrame(self.notebook, fg_color="transparent")
+        self.notebook.add(tab_simbolos, text="Tabla de Simbolos")
+        tab_simbolos.grid_columnconfigure(0, weight=1)
+        tab_simbolos.grid_rowconfigure(0, weight=1)
+        self._crear_simbolos_treeview(tab_simbolos)
+
+        tab_errores_sem = ctk.CTkFrame(self.notebook, fg_color="transparent")
+        self.notebook.add(tab_errores_sem, text="Errores Sem.")
+        tab_errores_sem.grid_columnconfigure(0, weight=1)
+        tab_errores_sem.grid_rowconfigure(0, weight=1)
+        self._crear_errores_sem_treeview(tab_errores_sem)
+
         self.grid_rowconfigure(3, weight=1)
         ctk.CTkLabel(self, text="Consola de Estado", font=("Consolas", 12, "bold"), anchor="w").grid(
             row=3, column=0, sticky="nw", padx=10, pady=(4, 0)
@@ -157,9 +170,77 @@ class MiniLexGUI(ctk.CTk):
         self.errores_sint_tree.grid(row=0, column=0, sticky="nsew")
         sb.grid(row=0, column=1, sticky="ns")
 
+    def _crear_simbolos_treeview(self, parent):
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
+        frame.grid(row=0, column=0, sticky="nsew")
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(0, weight=1)
+
+        self.simbolos_tree = ttk.Treeview(
+            frame,
+            columns=("nombre", "tipo", "linea", "col", "ambito", "inicializado"),
+            show="headings",
+            height=15,
+        )
+        self.simbolos_tree.heading("nombre", text="Nombre")
+        self.simbolos_tree.heading("tipo", text="Tipo")
+        self.simbolos_tree.heading("linea", text="Linea")
+        self.simbolos_tree.heading("col", text="Col")
+        self.simbolos_tree.heading("ambito", text="Ambito")
+        self.simbolos_tree.heading("inicializado", text="Inicializado")
+
+        self.simbolos_tree.column("nombre", width=200, anchor="w", stretch=True)
+        self.simbolos_tree.column("tipo", width=120, anchor="center", stretch=False)
+        self.simbolos_tree.column("linea", width=70, anchor="center", stretch=False)
+        self.simbolos_tree.column("col", width=60, anchor="center", stretch=False)
+        self.simbolos_tree.column("ambito", width=90, anchor="center", stretch=False)
+        self.simbolos_tree.column("inicializado", width=110, anchor="center", stretch=False)
+
+        self.simbolos_tree.tag_configure("simbolo", foreground="#4EC9B0")
+        self.simbolos_tree.tag_configure("vacio", foreground="#888888")
+
+        sb = ctk.CTkScrollbar(frame, command=self.simbolos_tree.yview)
+        self.simbolos_tree.configure(yscrollcommand=sb.set)
+
+        self.simbolos_tree.grid(row=0, column=0, sticky="nsew")
+        sb.grid(row=0, column=1, sticky="ns")
+
+    def _crear_errores_sem_treeview(self, parent):
+        frame = ctk.CTkFrame(parent, fg_color="transparent")
+        frame.grid(row=0, column=0, sticky="nsew")
+        frame.grid_columnconfigure(0, weight=1)
+        frame.grid_rowconfigure(0, weight=1)
+
+        self.errores_sem_tree = ttk.Treeview(
+            frame,
+            columns=("num", "linea", "col", "categoria", "mensaje"),
+            show="headings",
+            height=15,
+        )
+        self.errores_sem_tree.heading("num", text="N°")
+        self.errores_sem_tree.heading("linea", text="Linea")
+        self.errores_sem_tree.heading("col", text="Col")
+        self.errores_sem_tree.heading("categoria", text="Categoria")
+        self.errores_sem_tree.heading("mensaje", text="Mensaje")
+
+        self.errores_sem_tree.column("num", width=50, anchor="center", stretch=False)
+        self.errores_sem_tree.column("linea", width=80, anchor="center", stretch=False)
+        self.errores_sem_tree.column("col", width=60, anchor="center", stretch=False)
+        self.errores_sem_tree.column("categoria", width=110, anchor="center", stretch=False)
+        self.errores_sem_tree.column("mensaje", width=520, anchor="w", stretch=True)
+
+        self.errores_sem_tree.tag_configure("error_sem", foreground="#C586C0")
+        self.errores_sem_tree.tag_configure("sin_errores", foreground="#4EC9B0")
+
+        sb = ctk.CTkScrollbar(frame, command=self.errores_sem_tree.yview)
+        self.errores_sem_tree.configure(yscrollcommand=sb.set)
+
+        self.errores_sem_tree.grid(row=0, column=0, sticky="nsew")
+        sb.grid(row=0, column=1, sticky="ns")
+
     def on_analyze(self):
-        code = self.editor.get_code()
-        if not code or not code.strip():
+        code = self.editor.get_code() or ""
+        if not code.strip():
             self.console.write("No hay codigo para analizar", "error")
             return
 
@@ -200,6 +281,8 @@ class MiniLexGUI(ctk.CTk):
                     f"SINTACTICO:  {sint_err_str} | programa {sint_estado}",
                     "success" if parse_result.exitoso else "error",
                 )
+
+                self._ejecutar_semantico(parse_result)
             else:
                 self.console.write(stderr or "Error al ejecutar el lexer.", "error")
 
@@ -214,9 +297,12 @@ class MiniLexGUI(ctk.CTk):
         self.editor.set_code("")
         self.editor.highlight_errors([])
         self.editor.highlight_errors_sint([])
+        self.editor.highlight_errors_sem([])
         self.token_table.clear()
         self.ast_tree.delete(*self.ast_tree.get_children())
         self.errores_sint_tree.delete(*self.errores_sint_tree.get_children())
+        self.simbolos_tree.delete(*self.simbolos_tree.get_children())
+        self.errores_sem_tree.delete(*self.errores_sem_tree.get_children())
         self.console.clear()
 
     def on_load_file(self):
@@ -251,6 +337,90 @@ class MiniLexGUI(ctk.CTk):
             self.notebook.select(2)
         else:
             self.notebook.select(1)
+
+    def _ejecutar_semantico(self, parse_result: ParseResult) -> None:
+        """Ejecuta el analisis semantico sobre el AST.
+
+        Va envuelto en try/except para que un fallo inesperado nunca rompa el
+        flujo lexico/sintactico ya mostrado.
+        """
+        if parse_result.ast is None:
+            self.console.write(
+                "SEMANTICO:   omitido (sin arbol sintactico valido)", "info"
+            )
+            self._limpiar_vistas_semanticas()
+            return
+
+        try:
+            self.console.write("Ejecutando analisis semantico...", "info")
+            analizador = AnalizadorSemantico(parse_result.ast)
+            sem_result = analizador.analizar()
+            self._mostrar_resultado_semantico(sem_result, parse_result)
+
+            sem_errores = len(sem_result.errores)
+            sem_err_str = f"{sem_errores} error{'es' if sem_errores != 1 else ''}"
+            sem_estado = "valido" if sem_result.exitoso else "invalido"
+            self.console.write(
+                f"SEMANTICO:   {sem_err_str} | "
+                f"{len(sem_result.simbolos)} simbolos | programa {sem_estado}",
+                "success" if sem_result.exitoso else "error",
+            )
+        except Exception as e:
+            self.console.write(f"SEMANTICO:   error interno: {e}", "error")
+
+    def _mostrar_resultado_semantico(self, result: SemanticResult,
+                                     parse_result: ParseResult) -> None:
+        self._poblar_tabla_simbolos(result.simbolos)
+        self._poblar_tabla_errores_sem(result.errores)
+        self.editor.highlight_errors_sem(result.errores)
+
+        # Solo cambiar a la pestaña de errores semanticos si la fase sintactica
+        # no tuvo errores (para no pelear con su seleccion de pestaña).
+        if not parse_result.errores and result.errores:
+            self.notebook.select(4)
+
+    def _limpiar_vistas_semanticas(self) -> None:
+        self.simbolos_tree.delete(*self.simbolos_tree.get_children())
+        self.errores_sem_tree.delete(*self.errores_sem_tree.get_children())
+        self.editor.highlight_errors_sem([])
+
+    def _poblar_tabla_simbolos(self, simbolos: list) -> None:
+        self.simbolos_tree.delete(*self.simbolos_tree.get_children())
+
+        if not simbolos:
+            self.simbolos_tree.insert(
+                "", "end",
+                values=("Sin simbolos declarados", "", "", "", "", ""),
+                tags=("vacio",),
+            )
+            return
+
+        for s in simbolos:
+            ambito = "global" if s.ambito == 0 else f"local ({s.ambito})"
+            inicializado = "si" if s.inicializado else "no"
+            self.simbolos_tree.insert(
+                "", "end",
+                values=(s.nombre, s.tipo, s.line, s.column, ambito, inicializado),
+                tags=("simbolo",),
+            )
+
+    def _poblar_tabla_errores_sem(self, errores: list) -> None:
+        self.errores_sem_tree.delete(*self.errores_sem_tree.get_children())
+
+        if not errores:
+            self.errores_sem_tree.insert(
+                "", "end",
+                values=("", "", "", "", "Sin errores semanticos"),
+                tags=("sin_errores",),
+            )
+            return
+
+        for i, err in enumerate(errores, start=1):
+            self.errores_sem_tree.insert(
+                "", "end",
+                values=(i, err.line, err.column, err.categoria, err.mensaje),
+                tags=("error_sem",),
+            )
 
     def _poblar_ast_treeview(self, ast: ProgramaNode) -> None:
         self.ast_tree.delete(*self.ast_tree.get_children())
